@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::Cursor;
 
 struct Row {
@@ -11,6 +12,14 @@ struct Row {
 }
 
 //impl display for Row
+impl fmt::Display for Row {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "name: {}, rate: {}, variation: {}, high: {}, opening: {}, low: {}, volume: {}",
+               self.name, self.rate, self.variation, self.high, self.opening, self.low, self.volume)
+    }
+}
+
+
 
 
 async fn scrape( rows: & mut Vec<Row> ) -> Result<(), reqwest::Error> {
@@ -51,7 +60,7 @@ async fn main() -> Result<(), reqwest::Error> {
         scrape(& mut rows).await?;
         println!("rows.len() = {}", rows.len());
         for row in &rows {
-            println!("{} {} {} {} {} {} {}", row.name, row.rate, row.variation, row.opening, row.high, row.low, row.volume);
+            println!("{row}");
         }
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
     }

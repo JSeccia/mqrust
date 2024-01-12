@@ -48,7 +48,7 @@ async fn scrape(producer: &FutureProducer) -> Result<(), reqwest::Error> {
                 // Send row_data to Kafka
                 let payload = format!("{row_data}");
                 producer.send(
-                    FutureRecord::to("YOUR_TOPIC_NAME")
+                    FutureRecord::to("test-topic")
                         .payload(&payload)
                         .key("SomeKey"), // Modify as needed
                     Duration::from_secs(0),
@@ -70,7 +70,7 @@ async fn main() -> Result<(), reqwest::Error> {
 
     loop {
         scrape(&producer).await?;
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }
 

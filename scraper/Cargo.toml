@@ -9,7 +9,7 @@ edition = "2021"
 reqwest = { version = "0.11.22", features = ["json"] }
 select = "0.6.0"
 tokio = { version = "1.33.0", features = ["full"] }
-rdkafka = { version = "0.34.0", features = ["cmake-build"] }
+rdkafka = { version = "0.36.1", features = ["cmake-build"] }
 chrono = "0.4.31"
 env_logger = { version = "0.10.0", features = [] }
 log = "0.4.20"

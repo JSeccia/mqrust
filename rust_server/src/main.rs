@@ -1,38 +1,54 @@
+mod kafka_consumer;
+
 #[macro_use]
 extern crate rocket;
 
+use futures::SinkExt;
+use crate::kafka_consumer::init_new_consumer;
+use rdkafka::message::Message;
+use futures::stream::StreamExt;
 use rocket::response::Redirect;
-use rocket::fs::{FileServer, relative};
-use rocket::futures::{SinkExt, StreamExt};
-use rocket::serde::{json::Json, Serialize};
-use rocket_ws::{Config, WebSocket, Stream, Channel};
+use rocket_ws::{WebSocket, Channel};
 
-// Route to handle the index (React app entry point)
 #[get("/")]
 fn index() -> Redirect {
     Redirect::permanent("/frontend/index.html")
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build()
-        .mount("/", routes![index])
-        .mount("/ws", routes![echo])
-        // .mount("/frontend", FileServer::from(relative!("path-to-your-frontend-build")))
-        .mount("/api", routes![api_data]) // Example API route
-}
-
-#[get("/data")]
-fn api_data() -> Json<&'static str> {
-    Json("{ \"message\": \"Hello from Rocket!\" }")
-}
-
 #[get("/echo")]
 fn echo(ws: WebSocket) -> Channel<'static> {
     ws.channel(move |mut stream| Box::pin(async move {
-        while let Some(message) = stream.next().await {
-            let _ = stream.send(message?).await;
+        let consumer = init_new_consumer("test-group", "localhost:9092")
+            .expect("Failed to create consumer");
+        let mut message_stream = consumer.stream();
+
+        loop {
+            tokio::select! {
+                Some(ws_message) = stream.next() => {
+                    if let Ok(msg) = & ws_message {
+                        let _ = stream.send(msg.clone()).await;
+                    }
+                },
+                Some(result) = message_stream.next() => {
+                    match & result {
+                        Ok(borrowed_message) => {
+                            if let Some(payload) = borrowed_message.payload() {
+                                let text = std::str::from_utf8(payload).unwrap_or("");
+                                if stream.send(rocket_ws::Message::text(text)).await.is_err() {
+                                    break;
+                                }
+                            }
+                        },
+                        Err(e) => eprintln!("Kafka error: {}", e),
+                    }
+                }
+            }
         }
         Ok(())
     }))
+}
+
+#[launch]
+fn rocket() -> _ {
+    rocket::build().mount("/", routes![index, echo])
 }

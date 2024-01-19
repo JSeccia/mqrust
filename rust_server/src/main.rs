@@ -30,7 +30,7 @@ fn echo(ws: WebSocket) -> Channel<'static> {
                     }
                 },
                 Some(result) = message_stream.next() => {
-                    match & result {
+                    match result {
                         Ok(borrowed_message) => {
                             if let Some(payload) = borrowed_message.payload() {
                                 let text = std::str::from_utf8(payload).unwrap_or("");

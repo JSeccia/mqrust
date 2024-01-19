@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11.22", features = ["json"] }
+reqwest = { version = "0.11.23", features = ["json"] }
 select = "0.6.0"
-tokio = { version = "1.33.0", features = ["full"] }
-rdkafka = { version = "0.36.1", features = ["cmake-build"] }
+tokio = { version = "1.35.1", features = ["full"] }
+rdkafka = { version = "0.36.2", features = ["cmake-build"] }
 chrono = "0.4.31"
 env_logger = { version = "0.11.0", features = [] }
 log = "0.4.20"

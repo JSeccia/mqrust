@@ -10,7 +10,7 @@ pub fn init_new_consumer(group_id: &str, brokers: &str) -> Result<StreamConsumer
         .create()?;
 
     consumer
-        .subscribe(&["test-topic"])
+        .subscribe(&["LOREAL"])
         .expect("Can't subscribe to specified topic");
 
     Ok(consumer)

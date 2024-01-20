@@ -1,17 +1,32 @@
-version: '3'
+version: '3.9'
 services:
   zookeeper:
     image: wurstmeister/zookeeper
+    restart: always
     ports:
-      - "2181:2181"
+      - ${ZOOKEEPER_PORT}:2181
 
   kafka:
     image: wurstmeister/kafka
+    restart: always
     ports:
-      - "9092:9092"
+      - ${KAFKA_PORT}:${KAFKA_PORT}
     environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:${KAFKA_PORT}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     depends_on:
+      - zookeeper
+
+
+  scraper:
+    restart: always
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_PORT: ${KAFKA_PORT}
+    command: [ "./scraper", "-h", "kafka", "-p", "${KAFKA_PORT}" ]
+    depends_on:
+      - kafka
       - zookeeper

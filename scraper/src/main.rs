@@ -1,8 +1,10 @@
 use std::error::Error;
 use std::fmt;
 use std::io::Cursor;
-use std::time::Duration;
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
+use clap::{arg, command, value_parser, ArgAction};
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::get_rdkafka_version;
@@ -28,7 +30,7 @@ enum ScraperError {
     Join(tokio::task::JoinError),
     Kafka(rdkafka::error::KafkaError),
     Reqwest(reqwest::Error),
-    Send((rdkafka::error::KafkaError, rdkafka::message::OwnedMessage))
+    Send((rdkafka::error::KafkaError, rdkafka::message::OwnedMessage)),
 }
 
 impl fmt::Display for ScraperError {
@@ -91,11 +93,10 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {    // P
     let body = response.text().await?;
 
     // Spawn a blocking task for parsing
-    let payloads = tokio::task::spawn_blocking(move || -> Result<Vec<String>, ScraperError> {
+    let payloads = tokio::task::spawn_blocking(move || -> Result<Vec<(String, String)>, ScraperError> {
         let document = Document::from_read(Cursor::new(body))
             .map_err(ScraperError::Io)?;
-        let mut payloads = Vec::new();
-
+        let mut payloads: Vec<(String, String)> = Vec::new();
 
         for row in document.find(Name("table")).next().into_iter().flat_map(|table| table.find(Name("tr"))) {
             let cells: Vec<_> = row.find(Name("td")).map(|cell| cell.text().trim().to_string()).collect();
@@ -109,7 +110,7 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {    // P
                     low: cells[5].clone(),
                     volume: cells[6].clone(),
                 };
-                payloads.push(format!("{row_data}"));
+                payloads.push((row_data.name.clone(), format!("{row_data}")));
             }
         }
         Ok(payloads)
@@ -117,12 +118,24 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {    // P
         .map_err(ScraperError::Join)??;
 
     for payload in payloads {
+        println!("Sending payload: {:?}", payload);
+        //
+        // println!("Sending payload: {:?}", payload.0.replace([' ', '\''], ""));
+        //
+
+        let start = Instant::now();  // Start the timer
+
         producer.send(
-            FutureRecord::to("test-topic").payload(&payload).key("SomeKey"),
+            FutureRecord::to(&payload.0.replace([' ', '\''], ""))
+                .payload(&payload.1)
+                .key("SomeKey"),
             Duration::from_secs(5),
         )
             .await
             .map_err(ScraperError::Send)?; // Convert Kafka Error to MyError
+        let duration = start.elapsed();  // Calculate the duration
+        //
+        println!("Time taken: {:?}", duration);
     }
     Ok(())
 }
@@ -130,10 +143,36 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {    // P
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let matches = command!() // requires `cargo` feature
+        .version("0.1")
+        .author("Jayjay")
+        .about("Does something.")
+        .disable_help_flag(true)
+        .arg(arg!(-h --host [HOST] "Sets a custom Kafka host").default_value("localhost"))
+        .arg(arg!(-p --port [PORT] "Sets a custom Kafka port number").default_value("9092"))
+        .arg(arg!([name] "Optional name to operate on"))
+        .arg(
+            arg!(-c --config <FILE> "Sets a custom config file")
+                .required(false)
+                .value_parser(value_parser!(PathBuf)),
+        )
+        .arg(arg!(-d --debug ... "Turn debugging information on"))
+        .subcommand(
+            command!("test")
+                .about("does testing things")
+                .arg(arg!(-l --list "lists test values").action(ArgAction::SetTrue)),
+        )
+        .get_matches();
+
+    let host: &String = matches.get_one("host").unwrap();
+    let port: &String = matches.get_one("port").unwrap();
+
+    println!("host: {host}, port: {port}");
+
     let (version_n, version_s) = get_rdkafka_version();
     println!("librdkafka version: {version_s} ({version_n})");
     let producer: FutureProducer = ClientConfig::new()
-        .set("bootstrap.servers", "localhost:9092")
+        .set("bootstrap.servers", format!("{host}:{port}"))
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
@@ -148,7 +187,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 break;
             }
 
-            scrape(&producer).await.expect("Scrape function error");
+            if let Err(e) = scrape(&producer).await {
+                println!("Scraping error: {e:?}")
+            }
             tokio::time::sleep(Duration::from_secs(5)).await;
         }
     });

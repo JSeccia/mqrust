@@ -1,9 +1,16 @@
+use std::error::Error;
 use std::fmt;
 use std::io::Cursor;
 use std::time::Duration;
+
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::util::get_rdkafka_version;
+use select::document::Document;
+use select::predicate::Name;
+use tokio::signal;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+
 
 struct Row {
     name: String,
@@ -15,6 +22,61 @@ struct Row {
     volume: String,
 }
 
+#[derive(Debug)]
+enum ScraperError {
+    Io(std::io::Error),
+    Join(tokio::task::JoinError),
+    Kafka(rdkafka::error::KafkaError),
+    Reqwest(reqwest::Error),
+    Send((rdkafka::error::KafkaError, rdkafka::message::OwnedMessage))
+}
+
+impl fmt::Display for ScraperError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ScraperError::Io(e) => write!(f, "IO error: {e}"),
+            ScraperError::Join(e) => write!(f, "Join error: {e}"),
+            ScraperError::Kafka(e) => write!(f, "Kafka error: {e}"),
+            ScraperError::Reqwest(e) => write!(f, "Reqwest error: {e}"),
+            ScraperError::Send(e) => write!(f, "Send error: {}", e.0),
+        }
+    }
+}
+
+
+impl Error for ScraperError {}
+
+
+impl From<std::io::Error> for ScraperError {
+    fn from(err: std::io::Error) -> ScraperError {
+        ScraperError::Io(err)
+    }
+}
+
+impl From<tokio::task::JoinError> for ScraperError {
+    fn from(err: tokio::task::JoinError) -> ScraperError {
+        ScraperError::Join(err)
+    }
+}
+
+impl From<rdkafka::error::KafkaError> for ScraperError {
+    fn from(err: rdkafka::error::KafkaError) -> ScraperError {
+        ScraperError::Kafka(err)
+    }
+}
+
+impl From<reqwest::Error> for ScraperError {
+    fn from(err: reqwest::Error) -> ScraperError {
+        ScraperError::Reqwest(err)
+    }
+}
+
+impl From<(rdkafka::error::KafkaError, rdkafka::message::OwnedMessage)> for ScraperError {
+    fn from(err: (rdkafka::error::KafkaError, rdkafka::message::OwnedMessage)) -> ScraperError {
+        ScraperError::Send(err)
+    }
+}
+
 //impl display for Row
 impl fmt::Display for Row {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -24,17 +86,19 @@ impl fmt::Display for Row {
 }
 
 
-async fn scrape(producer: &FutureProducer) -> Result<(), reqwest::Error> {
+async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {    // Perform the async HTTP request
     let response = reqwest::get("https://www.boursier.com/indices/composition/cac-40-FR0003500008,FR.html").await?;
     let body = response.text().await?;
-    let cursor = Cursor::new(body);
-    let document = select::document::Document::from_read(cursor).unwrap();
-    let table = document.find(select::predicate::Name("table")).next();
-    if let Some(table) = table {
-        for row in table.find(select::predicate::Name("tr")) {
-            let cells: Vec<_> = row.find(select::predicate::Name("td"))
-                .map(|cell| cell.text().trim().to_string())
-                .collect();
+
+    // Spawn a blocking task for parsing
+    let payloads = tokio::task::spawn_blocking(move || -> Result<Vec<String>, ScraperError> {
+        let document = Document::from_read(Cursor::new(body))
+            .map_err(ScraperError::Io)?;
+        let mut payloads = Vec::new();
+
+
+        for row in document.find(Name("table")).next().into_iter().flat_map(|table| table.find(Name("tr"))) {
+            let cells: Vec<_> = row.find(Name("td")).map(|cell| cell.text().trim().to_string()).collect();
             if cells.len() == 7 {
                 let row_data = Row {
                     name: cells[0].clone(),
@@ -45,33 +109,63 @@ async fn scrape(producer: &FutureProducer) -> Result<(), reqwest::Error> {
                     low: cells[5].clone(),
                     volume: cells[6].clone(),
                 };
-                // Send row_data to Kafka
-                let payload = format!("{row_data}");
-                producer.send(
-                    FutureRecord::to("test-topic")
-                        .payload(&payload)
-                        .key("SomeKey"), // Modify as needed
-                    Duration::from_secs(0),
-                ).await.unwrap();
+                payloads.push(format!("{row_data}"));
             }
         }
+        Ok(payloads)
+    }).await
+        .map_err(ScraperError::Join)??;
+
+    for payload in payloads {
+        producer.send(
+            FutureRecord::to("test-topic").payload(&payload).key("SomeKey"),
+            Duration::from_secs(5),
+        )
+            .await
+            .map_err(ScraperError::Send)?; // Convert Kafka Error to MyError
     }
     Ok(())
 }
 
+
 #[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
-    // ... [Kafka setup code] ...
+async fn main() -> Result<(), Box<dyn Error>> {
+    let (version_n, version_s) = get_rdkafka_version();
+    println!("librdkafka version: {version_s} ({version_n})");
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", "localhost:9092")
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
 
-    loop {
-        scrape(&producer).await?;
-        tokio::time::sleep(Duration::from_secs(5)).await;
+    let (shutdown_tx, mut shutdown_rx): (UnboundedSender<()>, UnboundedReceiver<()>) = unbounded_channel();
+
+    let scrape_handle = tokio::spawn(async move {
+        loop {
+            // Check if a shutdown signal has been received
+            if shutdown_rx.try_recv().is_ok() {
+                println!("Shutdown signal received. Stopping scraping.");
+                break;
+            }
+
+            scrape(&producer).await.expect("Scrape function error");
+            tokio::time::sleep(Duration::from_secs(5)).await;
+        }
+    });
+
+    // Listen for Ctrl+C signal to initiate shutdown
+    signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
+
+    // Send a shutdown signal to the scraping task
+    let _ = shutdown_tx.send(());
+
+    // Await the completion of the scraping task
+    if let Err(e) = scrape_handle.await {
+        println!("Scraping task stopped with error: {:?}", e);
     }
+
+    println!("Application shutdown gracefully.");
+    Ok(())
 }
 
 

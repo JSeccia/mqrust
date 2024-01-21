@@ -1,17 +1,19 @@
 use std::error::Error;
 use std::fmt;
+use std::io::Error as IoError;
 
 use rdkafka::error::KafkaError;
+use rdkafka::message::OwnedMessage;
 use reqwest::Error as ReqwestError;
 use tokio::task::JoinError;
 
 #[derive(Debug)]
 pub enum ScraperError {
-    Io(std::io::Error),
+    Io(IoError),
     Join(JoinError),
     Kafka(KafkaError),
     Reqwest(ReqwestError),
-    Send((KafkaError, rdkafka::message::OwnedMessage)),
+    Send((KafkaError, OwnedMessage)),
 }
 
 impl fmt::Display for ScraperError {
@@ -29,8 +31,8 @@ impl fmt::Display for ScraperError {
 impl Error for ScraperError {}
 
 
-impl From<std::io::Error> for ScraperError {
-    fn from(err: std::io::Error) -> ScraperError {
+impl From<IoError> for ScraperError {
+    fn from(err: IoError) -> ScraperError {
         ScraperError::Io(err)
     }
 }
@@ -53,8 +55,8 @@ impl From<ReqwestError> for ScraperError {
     }
 }
 
-impl From<(KafkaError, rdkafka::message::OwnedMessage)> for ScraperError {
-    fn from(err: (KafkaError, rdkafka::message::OwnedMessage)) -> ScraperError {
+impl From<(KafkaError, OwnedMessage)> for ScraperError {
+    fn from(err: (KafkaError, OwnedMessage)) -> ScraperError {
         ScraperError::Send(err)
     }
 }

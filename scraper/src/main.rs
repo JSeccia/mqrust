@@ -8,8 +8,6 @@ use std::error::Error;
 
 use rdkafka::util::get_rdkafka_version;
 use tokio::signal;
-#[cfg(unix)]
-use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc::{unbounded_channel};
 
 use crate::kafka::create_kafka_producer;
@@ -30,7 +28,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let scrape_handle = tokio::spawn(async move {
         scraper::run_scraper_loop(producer, shutdown_rx).await
     });
-
 
     let shutdown_signal = async {
         tokio::select! {

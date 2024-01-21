@@ -1,5 +1,5 @@
-use std::io::Cursor;
 use std::fmt;
+use std::io::Cursor;
 use std::time::{Duration, Instant};
 
 use rdkafka::producer::{FutureProducer, FutureRecord};
@@ -55,10 +55,7 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {
         .map_err(ScraperError::Join)??;
 
     for payload in payloads {
-        println!("Sending payload: {:?}", payload);
-        //
-        // println!("Sending payload: {:?}", payload.0.replace([' ', '\''], ""));
-        //
+        println!("Sending payload: {payload:?}");
 
         let start = Instant::now();  // Start the timer
 
@@ -71,8 +68,7 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {
             .await
             .map_err(ScraperError::Send)?; // Convert Kafka Error to MyError
         let duration = start.elapsed();  // Calculate the duration
-        //
-        println!("Time taken: {:?}", duration);
+        println!("Time taken: {duration:?}");
     }
     Ok(())
 }

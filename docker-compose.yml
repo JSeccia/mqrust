@@ -10,13 +10,15 @@ services:
     image: wurstmeister/kafka
     restart: always
     ports:
-      - ${KAFKA_PORT}:${KAFKA_PORT}
+      - ${KAFKA_INTERNAL_PORT}:${KAFKA_INTERNAL_PORT}
+      - ${KAFKA_EXTERNAL_PORT}:${KAFKA_EXTERNAL_PORT}
     environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:${KAFKA_PORT}
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:${KAFKA_INTERNAL_PORT},EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:${KAFKA_INTERNAL_PORT},EXTERNAL://0.0.0.0:${KAFKA_EXTERNAL_PORT}
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    depends_on:
-      - zookeeper
+
 
 
   scraper:
@@ -25,8 +27,8 @@ services:
       context: ./scraper
       dockerfile: Dockerfile
     environment:
-      KAFKA_PORT: ${KAFKA_PORT}
-    command: [ "./scraper", "-h", "kafka", "-p", "${KAFKA_PORT}" ]
+      KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
+    command: [ "./scraper", "-h", "kafka", "-p", "${KAFKA_INTERNAL_PORT}" ]
     depends_on:
       - kafka
       - zookeeper

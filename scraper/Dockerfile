@@ -27,7 +27,6 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y libssl-dev ca-certificates
-RUN apt-get update && apt-get install -y libssl-dev
 # Copy the binary from the builder stage
 COPY --from=builder /scraper/target/release/scraper .
 

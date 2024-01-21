@@ -1,10 +1,10 @@
+use std::io::Cursor;
 use std::fmt;
+use std::time::{Duration, Instant};
 
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use select::document::Document;
 use select::predicate::Name;
-use std::io::Cursor;
-use std::time::{Duration, Instant};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::errors::ScraperError;

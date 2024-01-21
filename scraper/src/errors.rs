@@ -1,5 +1,5 @@
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 use rdkafka::error::KafkaError;
 use reqwest::Error as ReqwestError;

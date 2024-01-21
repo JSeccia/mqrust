@@ -13,6 +13,9 @@ use select::predicate::Name;
 use tokio::signal;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+#[cfg(unix)]
+use tokio::signal::unix::{signal, SignalKind};
+
 
 struct Row {
     name: String,
@@ -190,23 +193,56 @@ async fn main() -> Result<(), Box<dyn Error>> {
             if let Err(e) = scrape(&producer).await {
                 println!("Scraping error: {e:?}")
             }
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(5)) => {
+            }
+            _ = shutdown_rx.recv() => {
+                println!("Shutdown signal received. Stopping scraping.");
+                break;
+            }
+        }
         }
     });
 
-    // Listen for Ctrl+C signal to initiate shutdown
-    signal::ctrl_c().await.expect("Failed to listen for Ctrl+C");
 
-    // Send a shutdown signal to the scraping task
-    let _ = shutdown_tx.send(());
 
-    // Await the completion of the scraping task
-    if let Err(e) = scrape_handle.await {
-        println!("Scraping task stopped with error: {:?}", e);
+    let shutdown_signal = async {
+        tokio::select! {
+            _ = signal::ctrl_c() => {
+                println!("SIGINT received, shutting down.");
+            }
+            _ = handle_sigterm() => {
+                println!("SIGTERM received, shutting down.");
+            }
+        }
+    };
+
+    // Wait for either the shutdown signal or the scrape handle to complete
+    tokio::select! {
+        _ = shutdown_signal => {
+            // Shutdown signal received, send shutdown message to scrape handle
+            let _ = shutdown_tx.send(());
+        }
+        _ = scrape_handle => {
+            // The scrape handle completed (which shouldn't normally happen first)
+            println!("Scrape handle completed unexpectedly.");
+        }
     }
 
     println!("Application shutdown gracefully.");
     Ok(())
 }
 
+#[cfg(unix)]
+async fn handle_sigterm() {
+    let mut term_signal = signal(SignalKind::terminate()).expect("Failed to set up SIGTERM handler");
+    term_signal.recv().await;
+    println!("SIGTERM signal received.");
+}
 
+#[cfg(not(unix))]
+async fn handle_sigterm() {
+    futures::future::pending::<()>().await;
+    // Create a future that never resolves to keep the function running indefinitely
+    println!("SIGTERM handling is not applicable in non-Unix platforms.");
+}

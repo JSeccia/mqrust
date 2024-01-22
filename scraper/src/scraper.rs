@@ -11,9 +11,7 @@ use crate::errors::ScraperError;
 
 pub async fn run_scraper_loop(producer: FutureProducer, mut shutdown_rx: UnboundedReceiver<()>) -> Result<(), ScraperError> {
     loop {
-        if let Err(e) = scrape(&producer).await {
-            println!("Scraping error: {e:?}")
-        }
+        scrape(&producer).await?;
         tokio::select! {
             _ = tokio::time::sleep(Duration::from_secs(5)) => {
             }

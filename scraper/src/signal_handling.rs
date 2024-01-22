@@ -7,7 +7,7 @@ pub async fn handle_sigterm() {
     #[cfg(not(unix))]
     {
         pending::<()>().await;
-        println!("SIGTERM handling is not applicable in non-Unix platforms.");
+        unreachable!("SIGTERM handling is not applicable in non-Unix platforms.");
     }
 
     #[cfg(unix)]

@@ -8,7 +8,12 @@ services:
 
   kafka:
     image: wurstmeister/kafka
-    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost ${KAFKA_INTERNAL_PORT}" ]
+      interval: 4s
+      timeout: 5s
+      retries: 10
+    restart: on-failure
     ports:
       - ${KAFKA_INTERNAL_PORT}:${KAFKA_INTERNAL_PORT}
       - ${KAFKA_EXTERNAL_PORT}:${KAFKA_EXTERNAL_PORT}
@@ -24,7 +29,7 @@ services:
 
 
   scraper:
-    restart: always
+    restart: on-failure
     build:
       context: ./scraper
       dockerfile: Dockerfile
@@ -32,5 +37,5 @@ services:
       KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
     command: [ "./scraper", "-h", "kafka", "-p", "${KAFKA_INTERNAL_PORT}" ]
     depends_on:
-      - kafka
-      - zookeeper
+     kafka:
+        condition: service_healthy

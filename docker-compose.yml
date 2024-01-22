@@ -39,3 +39,16 @@ services:
     depends_on:
      kafka:
         condition: service_healthy
+
+  consumer:
+    restart: on-failure
+    build:
+      context: ./rust_server
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_HOST: kafka
+      KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
+    command: [ "./consumer", "-h", "kafka", "-p", "${KAFKA_INTERNAL_PORT}" ]
+    depends_on:
+     kafka:
+        condition: service_healthy

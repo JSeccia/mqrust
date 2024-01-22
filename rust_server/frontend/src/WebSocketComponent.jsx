@@ -43,7 +43,7 @@ const WebSocketComponent = () => {
     return (
         <div>
             <h2>WebSocket Test</h2>
-            <button onClick={() => sendMessage('Hello, Rocket!')}>Send Message</button>
+            <button onClick={() => sendMessage("toto")}>Send Message</button>
             <div>
                 <h3>Messages from Server:</h3>
                 <ul>

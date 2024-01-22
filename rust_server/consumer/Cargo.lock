@@ -216,6 +216,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "consumer"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "rdkafka",
+ "rocket",
+ "rocket_ws",
+ "tokio",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1242,18 +1253,6 @@ checksum = "b6677b3fe72e2d73dd632c412546ed8153e8685c830ee8d20e4488575cb905d9"
 dependencies = [
  "rocket",
  "tokio-tungstenite",
-]
-
-[[package]]
-name = "rust_server"
-version = "0.1.0"
-dependencies = [
- "futures",
- "lazy_static",
- "rdkafka",
- "rocket",
- "rocket_ws",
- "tokio",
 ]
 
 [[package]]

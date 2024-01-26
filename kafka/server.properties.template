@@ -1,0 +1,6 @@
+advertised.listeners={{KAFKA_ADVERTISED_LISTENERS}}
+listener.security.protocol.map={{KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}}
+listeners={{KAFKA_LISTENERS}}
+inter.broker.listener.name={{KAFKA_INTER_BROKER_LISTENER_NAME}}
+zookeeper.connect={{KAFKA_ZOOKEEPER_CONNECT}}
+offsets.topic.replication.factor=1

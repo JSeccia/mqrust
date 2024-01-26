@@ -5,14 +5,15 @@ services:
     restart: always
     ports:
       - ${ZOOKEEPER_PORT}:2181
+#    volumes:
+#      - zookeeper_data:/data
+#      - zookeeper_datalog:/datalog
 
   kafka:
-    image: wurstmeister/kafka
-    healthcheck:
-      test: [ "CMD-SHELL", "nc -z localhost ${KAFKA_INTERNAL_PORT}" ]
-      interval: 4s
-      timeout: 5s
-      retries: 10
+    image: kafka
+    build:
+      context: ./kafka
+      dockerfile: Dockerfile
     restart: on-failure
     ports:
       - ${KAFKA_INTERNAL_PORT}:${KAFKA_INTERNAL_PORT}
@@ -23,13 +24,21 @@ services:
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:${KAFKA_INTERNAL_PORT},EXTERNAL://0.0.0.0:${KAFKA_EXTERNAL_PORT}
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost ${KAFKA_INTERNAL_PORT}" ]
+      interval: 4s
+      timeout: 5s
+      retries: 10
     depends_on:
       - zookeeper
+#    volumes:
+#      - kafka_data:/kafka
 
 
 
   scraper:
     restart: on-failure
+    image: scraper
     build:
       context: ./scraper
       dockerfile: Dockerfile
@@ -40,15 +49,20 @@ services:
      kafka:
         condition: service_healthy
 
-  consumer:
-    restart: on-failure
-    build:
-      context: ./rust_server
-      dockerfile: Dockerfile
-    environment:
-      KAFKA_HOST: kafka
-      KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
-    command: [ "./consumer", "-h", "kafka", "-p", "${KAFKA_INTERNAL_PORT}" ]
-    depends_on:
-     kafka:
-        condition: service_healthy
+#  consumer:
+#    restart: on-failure
+#    build:
+#      context: ./rust_server
+#      dockerfile: Dockerfile
+#    environment:
+#      KAFKA_HOST: kafka
+#      KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
+#    command: [ "./consumer", "-h", "kafka", "-p", "${KAFKA_INTERNAL_PORT}" ]
+#    depends_on:
+#     kafka:
+#        condition: service_healthy
+
+volumes:
+  zookeeper_data:
+  zookeeper_datalog:
+  kafka_data:

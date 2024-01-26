@@ -5,7 +5,7 @@ limits = { form = "64 kB", json = "1 MiB" }
 [debug]
 port = 8000
 secret_key = "pP7ZTOSDs4vRhc6wEg7uWxcnSZ89kb+26oofpf7hvZA="
-log = "critical"
+log_level = "critical"
 kafka_host = "localhost"
 kafka_port = 9092
 
@@ -13,7 +13,7 @@ kafka_port = 9092
 address = "0.0.0.0"
 port = 8002
 secret_key = { value = "${PRODUCTION_SECRET_KEY}", or = "FallbackSecretKey" }
-log = "critical"
+log_level = "critical"
 kafka_host = "${KAFKA_HOST}"
 kafka_port = "${KAFKA_PORT}"
 

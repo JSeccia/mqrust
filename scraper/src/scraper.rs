@@ -58,9 +58,9 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {
         let start = Instant::now();  // Start the timer
 
         producer.send(
-            FutureRecord::to(&payload.0.replace([' ', '\''], ""))
+            FutureRecord::to("stocks")
                 .payload(&payload.1)
-                .key("SomeKey"),
+                .key(&payload.0.replace([' ', '\''], "")),
             Duration::from_secs(5),
         )
             .await

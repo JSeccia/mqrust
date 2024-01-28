@@ -3,6 +3,7 @@ import React, {useState, useEffect} from 'react';
 const WebSocketComponent = () => {
     const [ws, setWs] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [stock, setStock] = useState("");
 
     useEffect(() => {
         // Create WebSocket connection.
@@ -43,7 +44,8 @@ const WebSocketComponent = () => {
     return (
         <div>
             <h2>WebSocket Test</h2>
-            <button onClick={() => sendMessage("toto")}>Send Message</button>
+            <input type="text" value={stock} onChange={(e) => setStock(e.target.value)}/>
+            <button onClick={() => sendMessage(stock)} />
             <div>
                 <h3>Messages from Server:</h3>
                 <ul>

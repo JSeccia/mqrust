@@ -220,6 +220,7 @@ name = "consumer"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "lazy_static",
  "rdkafka",
  "rocket",
  "rocket_ws",

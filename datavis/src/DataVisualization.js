@@ -1,9 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Line, Bar } from 'react-chartjs-2';
+import './DataVisualization.css'; // Assuming you have a CSS file for styling
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+// Registering the components necessary for Line and Bar charts
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const DataVisualization = ({ data }) => {
-  const timestamps = data.map((item) => item.timestamp); 
-  const values = data.map((item) => item.value); 
+  const timestamps = data.map((item) => item.timestamp);
+  const values = data.map((item) => item.openingPrice);
 
   const lineChartData = {
     labels: timestamps,
@@ -18,7 +42,6 @@ const DataVisualization = ({ data }) => {
     ],
   };
 
-  // Bar Chart Configuration
   const barChartData = {
     labels: timestamps,
     datasets: [
@@ -33,13 +56,32 @@ const DataVisualization = ({ data }) => {
   };
 
   return (
-    <div>
+    <div className="data-visualization-container">
       <h2>Data Visualization</h2>
-      <div className="line-chart">
+      <div className="chart-container line-chart">
         <Line data={lineChartData} />
       </div>
-      <div className="bar-chart">
+      <div className="chart-container bar-chart">
         <Bar data={barChartData} />
+      </div>
+      <div className="table-container">
+        <h3>Raw Data</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Opening Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item, index) => (
+              <tr key={index}>
+                <td>{item.timestamp}</td>
+                <td>{item.openingPrice}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import {Kafka} from 'kafkajs';
-import express, {Express, Request, Response} from 'express';
+import express from 'express';
 import {Socket, Server as SocketServer} from 'socket.io';
 import {createServer} from 'http';
 import dotenv from 'dotenv';
@@ -13,7 +13,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 const httpServer = createServer(app);
-const io = new SocketServer(httpServer);
+const io = new SocketServer(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 const kafka = new Kafka({
     clientId: '1',

@@ -61,4 +61,12 @@ for _ in range(n_days):
     current_sequence[0, -1, 0] = predicted_price[0, 0]
 
 # Output the predicted prices in JSON format
-print(json.dumps({"predicted_prices": predicted_prices}))
+# Create a dictionary to hold the predictions with day labels
+predictions = {}
+for i, price in enumerate(predicted_prices, 1):
+    # Use f-string to format the day labels, e.g., "day1", "day2", etc.
+    day_label = f"day{i}"
+    predictions[day_label] = price
+
+# Output the predictions dictionary in JSON format
+print(json.dumps(predictions))

@@ -49,18 +49,21 @@ services:
      kafka:
         condition: service_healthy
 
-  consumer:
-    restart: on-failure
-    build:
-      context: ./rust_server
-      dockerfile: Dockerfile
-    environment:
-      KAFKA_HOST: kafka
-      KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
-    command: [ "./consumer", "-h", "kafka", "-p", "${KAFKA_INTERNAL_PORT}" ]
-    depends_on:
-     kafka:
-        condition: service_healthy
+#  consumer:
+#    restart: on-failure
+#    build:
+#      context: ./rust_server
+#      dockerfile: Dockerfile
+#    environment:
+#      KAFKA_HOST: ${KAFKA_HOST}
+#      KAFKA_PORT: ${KAFKA_INTERNAL_PORT}
+#      ROCKET_PROFILE: "release"
+#    command: [ "./consumer" ]
+#    ports:
+#     - "8000:8000"
+#    depends_on:
+#     kafka:
+#        condition: service_healthy
 
 volumes:
   zookeeper_data:

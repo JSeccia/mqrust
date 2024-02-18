@@ -1,33 +1,43 @@
 .data-visualization-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-  
-  .chart-container {
-    width: 80%;
-    padding: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  
-  .table-container {
-    width: 100%;
-    overflow-x: auto;
-  }
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  th, td {
-    border: 1px solid #ddd;
-    text-align: left;
-    padding: 8px;
-  }
-  
-  th {
-    background-color: #f2f2f2;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: calc(100% - 40px); /* Subtract padding from the total width */
+  padding: 20px; /* Add padding around the content */
+}
+
+.charts-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  width: 100%;
+  gap: 20px;
+}
+
+.chart-container {
+  flex: 1; /* Each chart container will take up equal space */
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  text-align: left;
+  padding: 8px;
+}
+
+th {
+  background-color: #4CAF50; /* Changed color of table headers */
+  color: white; /* Ensure text is readable against the new background */
+}

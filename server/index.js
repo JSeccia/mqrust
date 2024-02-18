@@ -81,7 +81,7 @@ io.on('connection', (socket) => {
             socket.emit("Stock not found");
             return;
         }
-        keyMap.get(data).set(socket.id, socket);
+        socket.join(data);
     });
 
     socket.on("disconnect", () => {

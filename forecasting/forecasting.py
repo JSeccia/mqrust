@@ -75,7 +75,7 @@ processed_data = preprocess_api_data(api_data)
 
 
 
-model_path = '/home/waul/Documents/GitHub/mqrust/forecasting/forecasting_model.h5'
+model_path = 'C:/Users/j.seccia/Desktop/epitech/mqrust/forecasting/forecasting_model.h5'
 if not os.path.exists(model_path):
     print(json.dumps({"error": f"Model file not found in {model_path}"}))
     sys.exit(1)
@@ -83,7 +83,7 @@ if not os.path.exists(model_path):
 model = load_model(model_path)
 
 # Load and apply the scaler
-scaler_path = '/home/waul/Documents/GitHub/mqrust/forecasting/scaler.save'
+scaler_path = 'C:/Users/j.seccia/Desktop/epitech/mqrust/forecasting/scaler.save'
 if not os.path.exists(scaler_path):
     print(json.dumps({"error": f"Scaler file not found in {scaler_path}"}))
     sys.exit(1)

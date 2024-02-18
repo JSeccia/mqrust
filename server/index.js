@@ -21,10 +21,12 @@ function parseRawMessage(rawMessage) {
 
     pairs.forEach(pair => {
         const [key, value] = pair.split(': ');
-        const cleanValue = value.replace('€', '').replace(',', '.').trim();
-        const numericValue = isNaN(Number(cleanValue)) ? cleanValue : Number(cleanValue);
+        let cleanValue = value.replace('€', '').replace(',', '.').trim();
         const jsonKey = key.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
-        jsonData[jsonKey] = numericValue;
+       if( key !== "name") {
+           cleanValue = cleanValue.replace(/\s+/g, '')
+       }
+        jsonData[jsonKey] = cleanValue;
     });
 
     return jsonData;
@@ -58,12 +60,8 @@ async function run() {
             const rawMessage = message.value.toString();
             const messageValue = parseRawMessage(rawMessage);
             stockData.push(messageValue);
-            if (!keyMap.has(message.key.toString())) {
-                keyMap.set(message.key.toString(), new Map());
-            }
-            keyMap.get(message.key.toString()).forEach((socket) => {
-                socket.send(messageValue);
-            });
+            console.log(message.key.toString());
+            io.to(message.key.toString()).emit('stock-update', messageValue);
             console.log({ value: messageValue });
         },
     });
@@ -84,11 +82,12 @@ io.on('connection', (socket) => {
         socket.join(data);
     });
 
+    socket.on("unsubscribe-stock", (data) => {
+        socket.leave(data);
+    })
+
     socket.on("disconnect", () => {
         socketMap.delete(socket.id);
-        keyMap.forEach((value, key) => {
-            value.delete(socket.id);
-        });
     });
 });
 
@@ -100,7 +99,8 @@ app.get('/data', (req, res) => {
 
 
 app.get('/predict', (req, res) => {
-    const pythonProcess = spawn('python3', ['/home/waul/Documents/GitHub/mqrust/forecasting/forecasting.py']);
+
+    const pythonProcess = spawn('python', ['C:/Users/j.seccia/Desktop/epitech/mqrust/forecasting/forecasting.py']);
     let responseSent = false;
 
     pythonProcess.stdin.write(JSON.stringify(stockData));

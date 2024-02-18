@@ -41,9 +41,10 @@ async function run() {
             if (!keyMap.has(message.key.toString())) {
                 keyMap.set(message.key.toString(), new Map());
             }
-            keyMap.get(message.key.toString()).forEach((socket) => {
-                socket.send(message.value.toString());
-            });
+            // keyMap.get(message.key.toString()).forEach((socket) => {
+            //     socket.send(message.value.toString());
+            // });
+            io.to(message.key.toString()).emit('stock-update', message.value.toString());
             console.log({
                 value: message.value.toString(),
             });
@@ -63,7 +64,7 @@ io.on('connection', (socket) => {
             socket.send("Stock not found");
             return;
         }
-        keyMap.get(data).set(socket.id, socket);
+        socket.join(data);
     });
 
     socket.on("disconnect", () => {

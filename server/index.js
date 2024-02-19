@@ -99,39 +99,16 @@ app.get('/data', (req, res) => {
 });
 
 
-app.get('/predict', (req, res) => {
-    const pythonProcess = spawn('python3', ['/home/waul/Documents/GitHub/mqrust/forecasting/forecasting.py']);
-    let responseSent = false;
+const axios = require('axios');
 
-    pythonProcess.stdin.write(JSON.stringify(stockData));
-    pythonProcess.stdin.end();
-
-    pythonProcess.stdout.on('data', (data) => {
-        if (!responseSent) {
-            res.json(JSON.parse(data));
-            responseSent = true;
-        }
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-        console.error(`stderr: ${data}`);
-    });
-
-    pythonProcess.on('error', (error) => {
-        console.error('Failed to start subprocess:', error);
-        if (!responseSent) {
-            res.status(500).send('Error starting prediction script');
-            responseSent = true;
-        }
-    });
-
-    pythonProcess.on('close', (code) => {
-        if (!responseSent) {
-            console.log(`Python script exited with code ${code}`);
-            res.status(500).send('Prediction script exited unexpectedly');
-            responseSent = true;
-        }
-    });
+app.get('/predict', async (req, res) => {
+    try {
+        const flaskResponse = await axios.post('http://127.0.0.1:5000/predict', stockData);
+        res.json(flaskResponse.data);
+    } catch (error) {
+        console.error('Error calling Flask prediction service:', error.message);
+        res.status(500).send('Error calling prediction service');
+    }
 });
 
 

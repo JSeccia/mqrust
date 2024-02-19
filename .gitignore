@@ -2,3 +2,4 @@
 /datavis/node_modules
 /forecasting/predict-stocks-using-lstm.ipynb
 /server/node_modules
+/scraper/target/

@@ -1191,6 +1191,8 @@ dependencies = [
  "rdkafka",
  "reqwest",
  "select",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

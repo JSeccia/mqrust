@@ -1,4 +1,3 @@
-use std::fmt;
 use std::io::Cursor;
 use std::time::{Duration, Instant};
 
@@ -6,8 +5,11 @@ use rdkafka::producer::{FutureProducer, FutureRecord};
 use select::document::Document;
 use select::predicate::Name;
 use tokio::sync::mpsc::UnboundedReceiver;
+use serde::Serialize;
+use serde_json::to_string;
 
 use crate::errors::ScraperError;
+
 
 pub async fn run_scraper_loop(producer: FutureProducer, mut shutdown_rx: UnboundedReceiver<()>) -> Result<(), ScraperError> {
     loop {
@@ -45,8 +47,7 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {
                     low: cells[5].clone(),
                     volume: cells[6].clone(),
                 };
-                payloads.push((row_data.name.clone(), format!("{row_data}")));
-            }
+                payloads.push((row_data.name.clone(), to_string(&row_data).expect("Failed to serialize row data")));            }
         }
         Ok(payloads)
     }).await
@@ -71,7 +72,7 @@ async fn scrape(producer: &FutureProducer) -> Result<(), ScraperError> {
     Ok(())
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Row {
     pub name: String,
     pub rate: String,
@@ -80,14 +81,4 @@ pub struct Row {
     pub opening: String,
     pub low: String,
     pub volume: String,
-}
-
-impl fmt::Display for Row {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "name: {}, rate: {}, variation: {}, high: {}, opening: {}, low: {}, volume: {}",
-            self.name, self.rate, self.variation, self.high, self.opening, self.low, self.volume
-        )
-    }
 }

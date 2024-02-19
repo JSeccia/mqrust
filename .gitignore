@@ -1,4 +1,5 @@
 /rust_server/consumer/target/
 /datavis/node_modules
-/forecasting/predict-stocks-using-lstm.ipynb
+/python_server/predict-stocks-using-lstm.ipynb
+/python_server/DS/
 /server/node_modules

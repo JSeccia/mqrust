@@ -1,22 +1,22 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, send_from_directory
 from flask_cors import CORS
-from flask_socketio import SocketIO, join_room, leave_room, send, emit
+from flask_socketio import SocketIO, join_room, leave_room, send
 from kafka import KafkaConsumer
 import os
 import json
 import re
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="./static", static_url_path='')
+socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="*")
 port = os.environ.get('PORT', 5001)
 kafka_broker = os.environ.get('KAFKA_BROKER', 'localhost:9092')
 
 # Kafka setup
 consumer = KafkaConsumer(
     'stocks',
-    bootstrap_servers=['localhost:9092'],
+    bootstrap_servers=[kafka_broker],
     auto_offset_reset='earliest',
     group_id='test-group',
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
@@ -62,19 +62,30 @@ def handle_unsubscribe_stock(data):
     send("Unsubscribed from stock updates", room=data)
 
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
+
 # Kafka consumer loop
 def kafka_consumer_loop():
     print("consumer loop")
     for msg in consumer:
-        message_value = msg.value  # This is already a dict because of your deserializer
-        message_key = msg.key.decode('utf-8')  # Decoding the key from bytes to string
-        room = message_key  # You can use message_key directly if it's a simple string
-        toto = parse_raw_message(message_value)
-        print(json.dumps(toto))
-        socketio.emit('stock-update', toto, room=room)
+        message_value = msg.value
+        message_key = msg.key.decode('utf-8')
+        room = message_key
+        socketio.emit('stock-update', parse_raw_message(message_value), room=room)
 
 
-
-if __name__ == '__main__':
+def create_app():
+    # Initialize your Flask app here
+    # Start Kafka consumer loop as a background task
     socketio.start_background_task(kafka_consumer_loop)
-    socketio.run(app, host='0.0.0.0', port=port)
+    return app
+
+
+app = create_app()

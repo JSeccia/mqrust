@@ -85,7 +85,7 @@ const unsubscribeFromStock = (companyName) => {
 }
 
 const DataVisualization = () => {
-    const [stockData, setStockData] = useState([]);
+    const [stockData, setStockData] = useState(new Map());
     const [chartData, setChartData] = useState({datasets: []});
     const [loading, setLoading] = useState(true); // Initialize loading state
     const [subscriptions, setSubscriptions] = useState(companyNames.reduce((acc, stock) => {
@@ -122,11 +122,11 @@ const DataVisualization = () => {
     }, []));
 
     const barChartData = {
-        labels: stockData.map((item) => item.name),
+        labels: Array.from(stockData.values()).map((item) => item.name),
         datasets: [
             {
                 label: 'rates',
-                data: stockData.map((item) => item.rate),
+                data: Array.from(stockData.values()).map((item) => item.rate),
                 backgroundColor: colors, // array of colors for each bar
                 minBarLength: 2, // Minimum length of each bar to ensure visibility
             },
@@ -149,7 +149,7 @@ const DataVisualization = () => {
             } else {
                 // Add new dataset for the company
                 const newDataset = {
-                    label: companyName,
+                    label: companyData.name,
                     data: combinedData,
                     borderColor: colors[prevChartData.datasets.length % colors.length], // Assuming 'colors' array exists
                     fill: false,
@@ -174,6 +174,19 @@ const DataVisualization = () => {
 
         fetchPredictions();
     }, [processChartData]);
+
+    useEffect(() => {
+        socket.on("stock-update", (newData) => {
+            setStockData(currentData => {
+                const updatedData = new Map(currentData);
+                updatedData.set(newData.name, newData);
+                return updatedData;
+            });
+        });
+        return () => {
+            socket.off("stock-update");
+        }
+    }, []);
 
     // useEffect(() => {
     //   const fetchData = async () => {
@@ -328,7 +341,7 @@ const DataVisualization = () => {
                     </tr>
                     </thead>
                     <tbody>
-                    {stockData.map((item, index) => (
+                    {Array.from(stockData.values()).map((item, index) => (
                         <tr key={index}>
                             <td>{item.name}</td>
                             <td>{item.rate}</td>

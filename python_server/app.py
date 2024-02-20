@@ -22,13 +22,23 @@ app.config['SECRET_KEY'] = 'secret!'
 port = os.environ.get('PORT', 5001)
 kafka_broker = os.environ.get('KAFKA_BROKER', 'localhost:9092')
 
+
+def safe_json_deserialize(x):
+    try:
+        return json.loads(x.decode('utf-8'))
+    except json.JSONDecodeError:
+        # Handle the error, for example, by returning None or logging an error message
+        print("Received a message that is not valid JSON.")
+        return None
+
+
 # Kafka setup
 consumer = KafkaConsumer(
     'stocks',
     bootstrap_servers=[kafka_broker],
     auto_offset_reset='earliest',
     group_id='test-group',
-    value_deserializer=lambda x: json.loads(x.decode('utf-8'))
+    value_deserializer=lambda x: safe_json_deserialize(x)
 )
 
 

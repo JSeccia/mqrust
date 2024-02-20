@@ -5,9 +5,9 @@ services:
     restart: always
     ports:
       - ${ZOOKEEPER_PORT}:2181
-#    volumes:
-#      - zookeeper_data:/data
-#      - zookeeper_datalog:/datalog
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
 
   kafka:
     image: kafka
@@ -31,8 +31,8 @@ services:
       retries: 10
     depends_on:
       - zookeeper
-#    volumes:
-#      - kafka_data:/kafka
+    volumes:
+      - kafka_data:/kafka
 
 
 

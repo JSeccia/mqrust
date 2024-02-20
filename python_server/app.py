@@ -74,7 +74,6 @@ def handle_unsubscribe_stock(data):
 @app.route('/predict', methods=['GET'])
 def predict():
     # Use the global stock_data for predictions
-    global stock_data
     if not stock_data:
         return jsonify({"error": "No stock data available"}), 400
 
@@ -99,7 +98,6 @@ def serve(path):
 
 # Kafka consumer loop
 def kafka_consumer_loop():
-    global stock_data
     for msg in consumer:
         message_value = msg.value
         message_key = msg.key.decode('utf-8')

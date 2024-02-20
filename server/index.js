@@ -100,7 +100,7 @@ app.get('/data', (req, res) => {
 
 app.get('/predict', (req, res) => {
 
-    const pythonProcess = spawn('python', ['C:/Users/j.seccia/Desktop/epitech/mqrust/python_server/python_server.py']);
+    const pythonProcess = spawn('python', ['C:/Users/j.seccia/Desktop/epitech/mqrust/python_server/forecasting.py']);
     let responseSent = false;
 
     pythonProcess.stdin.write(JSON.stringify(stockData));

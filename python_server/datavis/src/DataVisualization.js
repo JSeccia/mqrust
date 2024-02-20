@@ -76,9 +76,8 @@ const companyNames = [
 const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
 const subscribeToStock = (companyName) => {
-    console.log(socket != null); // Use the socket
     socket?.emit('subscribe-stock', companyName.replace(/\s+/g, ''));
-}; // Add socket as a dependency
+};
 
 const unsubscribeFromStock = (companyName) => {
     socket?.emit('unsubscribe-stock', companyName);

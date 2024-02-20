@@ -1,10 +1,19 @@
-from flask import Flask, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, send
 from kafka import KafkaConsumer
 import os
 import json
 import re
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
+from forecasting import make_forecasts
+
+stock_data = []
 
 app = Flask(__name__, static_folder="./static", static_url_path='')
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -62,6 +71,23 @@ def handle_unsubscribe_stock(data):
     send("Unsubscribed from stock updates", room=data)
 
 
+@app.route('/predict', methods=['GET'])
+def predict():
+    # Use the global stock_data for predictions
+    global stock_data
+    if not stock_data:
+        return jsonify({"error": "No stock data available"}), 400
+
+    try:
+        # Call the forecasting function with the global stock_data
+        predictions = make_forecasts(stock_data)
+        # Clear stock_data after making predictions
+        return jsonify(predictions)
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Error processing the forecast"}), 500
+
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -73,12 +99,15 @@ def serve(path):
 
 # Kafka consumer loop
 def kafka_consumer_loop():
-    print("consumer loop")
+    global stock_data
     for msg in consumer:
         message_value = msg.value
         message_key = msg.key.decode('utf-8')
         room = message_key
-        socketio.emit('stock-update', parse_raw_message(message_value), room=room)
+        parsed_message = parse_raw_message(message_value)
+        socketio.emit('stock-update', parsed_message, room=room)
+        stock_data.append(parsed_message)
+        print(stock_data)
 
 
 def create_app():

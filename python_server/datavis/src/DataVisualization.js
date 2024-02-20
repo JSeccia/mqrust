@@ -101,6 +101,8 @@ const DataVisualization = () => {
         Object.keys(data).forEach(companyName => {
             const companyData = data[companyName] || [];
 
+            console.log(companyData)
+
             // Combine actual and predicted data into a single array
             const combinedData = companyData.map(point => ({
                 x: point.date,

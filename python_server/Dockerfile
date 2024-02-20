@@ -14,7 +14,7 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 # Copy the Flask app files into the image
-COPY __init__.py app.py forecasting.py forecasting_model.h5 requirements.txt ./
+COPY __init__.py app.py forecasting.py forecasting_model.h5 requirements.txt scaler.save predict-stocks-using-lstm.ipynb ./
 # Copy the React build from the previous stage
 COPY --from=react-build /app/build ./static
 # Install Flask app dependencies

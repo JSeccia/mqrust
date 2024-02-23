@@ -55,7 +55,7 @@ services:
       context: ./python_server
       dockerfile: Dockerfile
     environment:
-      KAFKA_BROKER: ${KAFKA_HOST}:${KAFKA_INTERNAL_PORT}7
+      KAFKA_BROKER: ${KAFKA_HOST}:${KAFKA_INTERNAL_PORT}
       DB_HOST: mariadb
     ports:
       - "8000:8000"

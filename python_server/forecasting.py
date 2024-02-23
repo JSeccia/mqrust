@@ -15,7 +15,7 @@ def preprocess_api_data(data):
     preprocessed_data = []
     current_date = pd.Timestamp.now()
 
-    for name, group in df.groupby('name'):
+    for name, group in df.groupby('stock_name'):
         group = group.sort_values(by='date') if 'date' in group.columns else group.tail(10)
         last_10 = group.tail(10)
         dates = [(current_date - pd.Timedelta(days=x)).date() for x in reversed(range(10))]

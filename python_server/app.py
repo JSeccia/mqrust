@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, send
@@ -22,11 +23,9 @@ db_host = os.environ.get('DB_HOST', 'localhost')
 db_port = os.environ.get('DB_PORT', '3306')
 db_user = os.environ.get('DB_USER', 'stock_user')
 db_password = os.environ.get('DB_PASSWORD', 'stock_user')
+kafka_broker = os.environ.get('KAFKA_BROKER', 'localhost:9092')
 
 db = SQLAlchemy()
-app = Flask(__name__, static_folder="./static", static_url_path='')
-app.config[
-    'SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/stocks'
 
 
 class StockOpening(db.Model):
@@ -40,12 +39,6 @@ class StockOpening(db.Model):
     def __repr__(self):
         return f'<StockOpening {self.id} {self.opening}>'
 
-
-socketio = SocketIO(app, cors_allowed_origins="*")
-CORS(app)
-app.config['SECRET_KEY'] = 'secret!'
-port = os.environ.get('PORT', 5001)
-kafka_broker = os.environ.get('KAFKA_BROKER', 'localhost:9092')
 
 # Kafka setup
 consumer = KafkaConsumer(
@@ -67,25 +60,22 @@ def kafka_consumer_loop():
         socketio.emit('stock-update', parsed_message, room=room)
         stock_data.append(parsed_message)
 
-
-def create_app():
-    app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 
     # Configure your Flask app (e.g., from config files or environment variables)
-    app.config[
-        'SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/stocks'
+app.config[
+    'SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/stocks'
 
     # Initialize plugins
-    db.init_app(app)
-    migrate = Migrate(app, db)
-
-    # Other app setup (e.g., register blueprints, socketio, etc.)
-    socketio.init_app(app)
-
-    return app
+db.init_app(app)
+migrate = Migrate(app, db)
+socketio = SocketIO(app, cors_allowed_origins="*")
+socketio.start_background_task(kafka_consumer_loop)
 
 
-app = create_app()
+CORS(app)
+app.config['SECRET_KEY'] = 'secret!'
+port = os.environ.get('PORT', 5001)
 
 
 def safe_json_deserialize(x):
@@ -137,14 +127,28 @@ def handle_unsubscribe_stock(data):
 
 @app.route('/predict', methods=['GET'])
 def predict():
-    # Use the global stock_data for predictions
-    if not stock_data:
-        return jsonify({"error": "No stock data available"}), 400
-
     try:
-        # Call the forecasting function with the global stock_data
+        # Calculate the date 10 days ago from today
+        ten_days_ago = datetime.today() - timedelta(days=10)
+
+        # Query the database for stock openings in the last 10 days
+        recent_stock_openings = StockOpening.query.filter(StockOpening.date >= ten_days_ago).all()
+
+        # If no data is available
+        if not recent_stock_openings:
+            return jsonify({"error": "No stock data available for the last 10 days"}), 400
+
+        # Assuming make_forecasts is a function that takes a list of dictionaries
+        # Convert recent_stock_openings to a list of dictionaries
+        stock_data = [{
+            "id": stock.id,
+            "stock_name": stock.stock_name,
+            "date": stock.date.strftime('%Y-%m-%d'),  # Formatting date as string for serialization
+            "opening": stock.opening
+        } for stock in recent_stock_openings]
+
         predictions = make_forecasts(stock_data)
-        # Clear stock_data after making predictions
+
         return jsonify(predictions)
     except Exception as e:
         print(e)

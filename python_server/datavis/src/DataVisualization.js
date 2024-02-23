@@ -304,6 +304,8 @@ const DataVisualization = () => {
                         <Line data={chartData} options={chartOptions}/> // Render line chart when data is ready
                     )}
                 </div>
+            </div>
+            <div className="charts-row">
                 <div className="chart-container">
                     <Bar data={barChartData} options={barChartOptions}/>
                 </div>

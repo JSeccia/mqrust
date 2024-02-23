@@ -31,8 +31,8 @@ services:
       retries: 10
     depends_on:
       - zookeeper
-    volumes:
-      - kafka_data:/kafka
+#    volumes:
+#      - kafka_data:/kafka
 
 
 

@@ -14,7 +14,19 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 # Copy the Flask app files into the image
-COPY __init__.py app.py forecasting.py forecasting_model.h5 requirements.txt scaler.save predict-stocks-using-lstm.ipynb ./
+COPY __init__.py \
+app.py \
+forecasting.py \
+forecasting_model.h5 \
+requirements.txt \
+scaler.save \
+predict-stocks-using-lstm.ipynb \
+entrypoint.sh \
+./
+
+COPY migrations ./migrations
+
+RUN chmod +x entrypoint.sh
 # Copy the React build from the previous stage
 COPY --from=react-build /app/build ./static
 # Install Flask app dependencies
@@ -25,4 +37,4 @@ EXPOSE 8000
 
 # Run the Flask app using Gunicorn in production
 #CMD ["gunicorn", "-w", "1", "-k", "eventlet", "-b", "0.0.0.0:8000", "app:app"]
-CMD ["flask", "run", "--host=0.0.0.0", "--port=8000"]
+ENTRYPOINT ["./entrypoint.sh"]
